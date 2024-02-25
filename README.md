@@ -14,8 +14,9 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 
 #### Install:
 1. Install [Python 3.11](https://www.python.org/downloads/release/python-3118/)
-2. Download TDDepthAnything repository
-3. Run ```accelerate.bat```
+2. Install [Microsoft Visual C++ 14.0](https://visualstudio.microsoft.com/visual-cpp-build-tools/) or greater.
+3. Download TDDepthAnything repository
+4. Run ```accelerate.bat```
 #### Accelerate models:
 1. Download [Depth-Anything model](https://huggingface.co/spaces/LiheYoung/Depth-Anything/tree/main/checkpoints)
 2. Copy model to ```checkpoints``` folder
