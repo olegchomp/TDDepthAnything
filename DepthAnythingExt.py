@@ -50,12 +50,12 @@ class DepthAnythingExt:
 			
 		# Process the depth output
 		depth = np.reshape(depth, self.output_shape[2:])
-		depth = (depth - depth.min()) / (depth.max() - depth.min()) * 255.0 #  * 65535.0
-		depth = depth.astype(np.uint8) # np.uint16
+		depth = (depth - depth.min()) / (depth.max() - depth.min()) * 65535.0
+		depth = depth.astype(np.uint16)
 		depth = cv2.resize(depth, (orig_w, orig_h))
 		
 		if parent().par.Output == 'grayscale':
-			image = depth[:, :, np.newaxis].astype(np.uint8) # np.uint16
+			image = depth[:, :, np.newaxis].astype(np.uint16)
 		else:
 			colored_depth = cv2.applyColorMap(depth, cv2.COLORMAP_INFERNO)
 			image = cv2.cvtColor(colored_depth, cv2.COLOR_BGR2RGBA)
