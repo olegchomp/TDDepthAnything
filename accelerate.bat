@@ -13,7 +13,8 @@ if not exist .venv (
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
     echo Installing dependencies from requirements.txt...
     pip install -r requirements.txt
-    
+    pip uninstall -y nvidia-cudnn-cu11
+
     if not exist checkpoints (
         echo Creating 'checkpoints' folder...
         mkdir checkpoints
