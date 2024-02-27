@@ -14,9 +14,13 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 
 #### Install:
 1. Install [Python 3.11](https://www.python.org/downloads/release/python-3118/)
-2. Install [Microsoft Visual C++ 14.0](https://visualstudio.microsoft.com/visual-cpp-build-tools/) or greater.
-3. Download TDDepthAnything repository
-4. Run ```accelerate.bat```
+2. Install [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads)
+3. Install [Microsoft Visual C++ 14.0](https://visualstudio.microsoft.com/visual-cpp-build-tools/) or greater.
+4. Download TDDepthAnything repository
+5. Run ```accelerate.bat```
+
+(if you know how to avoid 2-3 step, please make issue/commit)
+
 #### Accelerate models:
 1. Download [Depth-Anything model](https://huggingface.co/spaces/LiheYoung/Depth-Anything/tree/main/checkpoints)
 2. Copy model to ```checkpoints``` folder
