@@ -19,8 +19,6 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 4. Download TDDepthAnything repository
 5. Run ```accelerate.bat```
 
-(if you know how to avoid 2-3 step, please make issue/commit)
-
 #### Accelerate models:
 1. Download [Depth-Anything model](https://huggingface.co/spaces/LiheYoung/Depth-Anything/tree/main/checkpoints)
 2. Copy model to ```checkpoints``` folder
