@@ -28,16 +28,15 @@ class DepthAnythingExt:
 
 	def load_op_image(self):
 		image = op('null1').numpyArray()
-		image = (image * 255).astype(np.uint8)
+		image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
 		orig_shape = image.shape[:2]
-		image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB) / 255.0
 		image = transform({"image": image})["image"]  # C, H, W
 		image = image[None]  # B, C, H, W
 		return image, orig_shape
 	
 	def run(self):
 		input_image, (orig_h, orig_w) = self.load_op_image()
-		
+	
 		# Copy the input image to the pagelocked memory
 		np.copyto(self.h_input, input_image.ravel())
 		
@@ -45,17 +44,15 @@ class DepthAnythingExt:
 		cuda.memcpy_htod_async(self.d_input, self.h_input, self.stream)
 		self.context.execute_async_v2(bindings=[int(self.d_input), int(self.d_output)], stream_handle=self.stream.handle)
 		cuda.memcpy_dtoh_async(self.h_output, self.d_output, self.stream)
-		self.stream.synchronize()
 		depth = self.h_output
-			
+
 		# Process the depth output
 		depth = np.reshape(depth, self.output_shape[2:])
-		depth = (depth - depth.min()) / (depth.max() - depth.min()) * 65535.0
-		depth = depth.astype(np.uint16)
-		depth = cv2.resize(depth, (orig_w, orig_h))
-		
+		depth = depth.astype(np.float32) # np.uint16
+		depth = (depth - depth.min()) / (depth.max() - depth.min())
+
 		if parent().par.Output == 'grayscale':
-			image = depth[:, :, np.newaxis].astype(np.uint16)
+			image = depth[:, :, np.newaxis].astype(np.float32) # np.uint16
 		else:
 			colored_depth = cv2.applyColorMap(depth, cv2.COLORMAP_INFERNO)
 			image = cv2.cvtColor(colored_depth, cv2.COLOR_BGR2RGBA)
@@ -67,7 +64,7 @@ class DepthAnythingExt:
 		if endpoint == 'Urlg':
 			webbrowser.open('https://github.com/olegchomp/TDDepthAnything', new=2)
 		if endpoint == 'Urld':
-			 webbrowser.open('https://discord.gg/wNW8xkEjrf', new=2)
+			webbrowser.open('https://discord.gg/wNW8xkEjrf', new=2)
 		if endpoint == 'Urlt':
 			webbrowser.open('https://www.youtube.com/vjschool', new=2)
 		if endpoint == 'Urla':
