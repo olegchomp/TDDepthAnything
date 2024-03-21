@@ -47,14 +47,11 @@ class DepthAnythingExt:
 		cuda.memcpy_htod_async(d_input, h_input, stream)
 		context.execute_async_v2(bindings=[int(d_input), int(d_output)], stream_handle=stream.handle)
 		cuda.memcpy_dtoh_async(h_output, d_output, stream)
-		depth = h_output
-
+		
 		# Process the depth output
-		depth = np.reshape(depth, output_shape[2:])
-		depth = depth.astype(np.float32) # np.uint16
-		depth = (depth - depth.min()) / (depth.max() - depth.min())
-
-		image = depth[:, :, np.newaxis].astype(np.float32) # np.uint16
+		depth = np.reshape(h_output, output_shape[2:])
+		depth = (depth - depth.min()) / (depth.max() - depth.min()) * 2 - 1
+		image = depth[:, :, np.newaxis].astype(np.float32)
 
 		return image
 		
