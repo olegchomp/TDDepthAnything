@@ -9,9 +9,16 @@ from polygraphy.backend.trt import (
     network_from_onnx_path,
     save_engine,
 )
-
 torch.hub.set_dir('torchhub')
 from depth_anything.dpt import DPT_DINOv2
+
+def adjust_image_size(image_size):
+    patch_size = 14
+    # Calculate the nearest multiple of patch_size that is greater than or equal to image_size
+    adjusted_size = (image_size // patch_size) * patch_size
+    if image_size % patch_size != 0:
+        adjusted_size += patch_size
+    return adjusted_size
 
 os.makedirs("onnx_models", exist_ok=True)
 os.makedirs("engines", exist_ok=True)
@@ -24,13 +31,25 @@ while True:
     else:
         print("Invalid input. Please enter 's', 'b', or 'l'.")
 
+while True:
+    try:
+        width = int(input("Enter the width of the input: "))
+        height = int(input("Enter the height of the input: "))
+        break
+    except ValueError:
+        print("Invalid input. Please enter a valid integer for width and height.")
+
+
 encoder = f'vit{model_size}'
 load_from = f'./checkpoints/depth_anything_vit{model_size}14.pth'
-image_shape = (3, 518, 518)
+width = adjust_image_size(width)
+height = adjust_image_size(height)
+image_shape = (3, height, width)
+print(f'Image shape is {width}x{height}')
 
 outputs = f"{load_from.split('/')[-1].split('.pth')[0]}"
-onnx_path = f"onnx_models/{outputs}.onnx"
-engine_path = f"engines/{outputs}.engine"
+onnx_path = f"onnx_models/{outputs}_{width}x{height}.onnx"
+engine_path = f"engines/{outputs}_{width}x{height}.engine"
 
 # build onnx
 # Initializing model
