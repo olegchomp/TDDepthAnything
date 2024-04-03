@@ -1,5 +1,4 @@
 huggingface_hub
-opencv-python
-pycuda
 polygraphy
 onnx
+cupy-cuda11x
