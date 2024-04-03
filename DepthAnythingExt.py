@@ -1,69 +1,91 @@
-import os
-import cv2
-import numpy as np
-import pycuda.autoinit
-import pycuda.driver as cuda
 import tensorrt as trt
-import webbrowser
-import transform
+import torch
+import cupy as cp
+import numpy as np
 
 class DepthAnythingExt:
 	def __init__(self, ownerComp):
-		# The component to which this extension is attached
+		"""Initialize TensorRT plugins, engine and conetxt."""
 		self.ownerComp = ownerComp
+		self.trt_path = parent().par.Enginefile.val
+		self.device = "cuda"
+		self.trt_logger = trt.Logger(trt.Logger.INFO)
+		self.ownerComp.par.Dimensions = ''
+		try:
+			self.engine = self._load_engine()
+			self.get_dimensions(self.engine)
+			self.context = self.engine.create_execution_context()
+			self.stream = torch.cuda.current_stream(device=self.device)
+		except Exception as e:
+			print(e)
 
-		# Create logger and load the TensorRT engine
-		engine = parent().par.Enginefile.val
-		logger = trt.Logger(trt.Logger.WARNING)
-		with open(engine, 'rb') as f, trt.Runtime(logger) as runtime:
-			engine = runtime.deserialize_cuda_engine(f.read())
-			
-		context = engine.create_execution_context()
-		input_shape = context.get_tensor_shape('input')
-		output_shape = context.get_tensor_shape('output')
-		h_input = cuda.pagelocked_empty(trt.volume(input_shape), dtype=np.float32)
-		h_output = cuda.pagelocked_empty(trt.volume(output_shape), dtype=np.float32)
-		d_input = cuda.mem_alloc(h_input.nbytes)
-		d_output = cuda.mem_alloc(h_output.nbytes)
-		stream = cuda.Stream()
-		self.init_scripts = context, input_shape, output_shape, h_input, h_output, d_input, d_output, stream
+		self.cpCudaMem = cp.cuda.memory
 
-	def load_op_image(self):
-		image = op('null1').numpyArray()
-		image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
-		orig_shape = image.shape[:2]
-		image = transform.transform({"image": image})["image"]  # C, H, W
-		image = image[None]  # B, C, H, W
-		return image, orig_shape
+	def get_dimensions(self, engine):
+		shapes = []
+		for binding in range(engine.num_bindings):
+			shape = engine.get_binding_shape(binding)
+			shapes.append(shape)
+		dimensions = shapes[0][2:]
+		self.ownerComp.par.Dimensions = f"{dimensions[1]}x{dimensions[0]}"
+		op('fit2').par.resolutionw = dimensions[1]
+		op('fit2').par.resolutionh = dimensions[0]
+
+	def _load_engine(self):
+		"""Load TensorRT engine."""
+		TRTbin = self.trt_path
+		with open(TRTbin, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
+			return runtime.deserialize_cuda_engine(f.read())
 	
+	def infer(self, img, output):
+		"""Run inference on TensorRT engine."""
+		self.bindings = [img.data_ptr()] + [output.data_ptr()]
+		self.context.execute_async_v2(bindings=self.bindings, stream_handle=self.stream.cuda_stream)
+		#self.stream.synchronize()
+			
 	def run(self):
-		context, input_shape, output_shape, h_input, h_output, d_input, d_output, stream = self.init_scripts
-		input_image, (orig_h, orig_w) = self.load_op_image()
-		
-		# Copy the input image to the pagelocked memory
-		np.copyto(h_input, input_image.ravel())
-		
-		# Copy the input to the GPU, execute the inference, and copy the output back to the CPU
-		cuda.memcpy_htod_async(d_input, h_input, stream)
-		context.execute_async_v2(bindings=[int(d_input), int(d_output)], stream_handle=stream.handle)
-		cuda.memcpy_dtoh_async(h_output, d_output, stream)
-		
-		# Process the depth output
-		depth = np.reshape(h_output, output_shape[2:])
-		depth = (depth - depth.min()) / (depth.max() - depth.min()) * 2 - 1
-		image = depth[:, :, np.newaxis].astype(np.float32)
+		cpCudaMem = self.cpCudaMem
 
-		return image
-		
-	def about(self, endpoint):
+		source = op('null1')
+		topCudaMem = source.cudaMemory()
 
-		if endpoint == 'Urlg':
-			webbrowser.open('https://github.com/olegchomp/TDDepthAnything', new=2)
-		if endpoint == 'Urld':
-			webbrowser.open('https://discord.gg/wNW8xkEjrf', new=2)
-		if endpoint == 'Urlt':
-			webbrowser.open('https://www.youtube.com/vjschool', new=2)
-		if endpoint == 'Urla':
-			webbrowser.open('https://olegcho.mp/', new=2)
-		if endpoint == 'Urldonate':
-			webbrowser.open('https://boosty.to/vjschool/donate', new=2)
+		shape = (source.height, source.width, 4)
+		dType = cp.float32
+		
+		cpMemoryPtr = cpCudaMem.MemoryPointer(cpCudaMem.UnownedMemory(
+						topCudaMem.ptr, topCudaMem.size, topCudaMem),
+						0)
+						
+		frameGPU = cp.ndarray(shape, dType, cpMemoryPtr)
+		mean = cp.asarray([0.485, 0.456, 0.406], dtype=cp.float32)
+		std = cp.asarray([0.229, 0.224, 0.225], dtype=cp.float32)
+		normalized_image = (frameGPU[..., :3] - mean) / std
+
+		trt_input = torch.as_tensor(normalized_image, device=self.device)
+		trt_input = trt_input.permute(2,0,1) * 2 - 1
+		trt_input = trt_input.ravel()
+		trt_output = torch.zeros((source.height, source.width), device=self.device)
+		self.infer(trt_input, trt_output)
+
+		trt_output = trt_output / 255
+		trt_output = trt_output.data_ptr()
+
+
+		output = TopCUDAInterface(
+			source.width,
+			source.height,
+			1,
+			np.float32
+		)
+		
+		return trt_output, output
+
+class TopCUDAInterface:
+	def __init__(self, width, height, num_comps, dtype):
+		self.mem_shape = CUDAMemoryShape()
+		self.mem_shape.width = width
+		self.mem_shape.height = height
+		self.mem_shape.numComps = num_comps
+		self.mem_shape.dataType = dtype
+		self.bytes_per_comp = np.dtype(dtype).itemsize
+		self.size = width * height * num_comps * self.bytes_per_comp
