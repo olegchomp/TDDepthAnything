@@ -8,6 +8,9 @@ TouchDesigner implementation for Depth Anything and TensorRT monocular depth est
 ## Features
 * One click install and run script
 * In-TouchDesigner inference
+
+## Updates
+* 2024-04-03 — Removed PyCuda. Added CuPy.
   
 ## Usage
 Tested with TouchDesigner 2023.11340 & Python 3.11
@@ -15,16 +18,16 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 #### Install:
 1. Install [Python 3.11](https://www.python.org/downloads/release/python-3118/)
 2. Install [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads)
-3. Install [Microsoft Visual C++ 14.0](https://visualstudio.microsoft.com/visual-cpp-build-tools/) or greater.
-4. Download TDDepthAnything repository
-5. Run ```accelerate.bat```
+3. Download TDDepthAnything repository
+4. Run ```accelerate.bat```
 
 #### Accelerate models:
 1. Download [Depth-Anything model](https://huggingface.co/spaces/LiheYoung/Depth-Anything/tree/main/checkpoints)
 2. Copy model to ```checkpoints``` folder
 3. Run ```accelerate.bat```
 4. Select model size (s - small, b - base, l - large)
-5. Wait for acceleration to finish
+5. Select width & height (default is 518x518)
+6. Wait for acceleration to finish
 #### TouchDesigner inference:
 1. Add TDDepthAnything.tox to project
 2. On ```Settings``` page change path to ```TDDepthAnything``` folder and click Re-init
