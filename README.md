@@ -8,9 +8,6 @@ TouchDesigner implementation for Depth Anything and TensorRT monocular depth est
 ## Features
 * One click install and run script
 * In-TouchDesigner inference
-
-## Updates
-* 2024-04-03 — Removed PyCuda. Added CuPy.
   
 ## Usage
 Tested with TouchDesigner 2023.11340 & Python 3.11
