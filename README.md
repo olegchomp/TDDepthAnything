@@ -14,7 +14,7 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 
 #### Install:
 1. Install [Python 3.11](https://www.python.org/downloads/release/python-3118/)
-2. Install [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads)
+2. Install [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) 11.8
 3. Download TDDepthAnything repository
 4. Run ```accelerate.bat```
 
@@ -34,3 +34,4 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 Based on the following projects:
 * [Depth-Anything](https://github.com/LiheYoung/Depth-Anything) - Unleashing the Power of Large-Scale Unlabeled Data.
 * [Depth-Anything TensorRT C++](https://github.com/spacewalk01/depth-anything-tensorrt) - Leveraging the TensorRT API for efficient real-time inference.
+* [TopArray](https://github.com/IntentDev/TopArray) - Interaction between Python/PyTorch tensor operations and TouchDesigner TOPs.
