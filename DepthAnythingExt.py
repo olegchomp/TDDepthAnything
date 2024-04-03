@@ -2,6 +2,7 @@ import tensorrt as trt
 import torch
 import cupy as cp
 import numpy as np
+import webbrowser
 
 class DepthAnythingExt:
 	def __init__(self, ownerComp):
@@ -79,7 +80,17 @@ class DepthAnythingExt:
 		)
 		
 		return trt_output, output
-
+	def about(self, endpoint):
+		if endpoint == 'Urlg':
+			webbrowser.open('https://github.com/olegchomp/TDDepthAnything', new=2)
+		if endpoint == 'Urld':
+			webbrowser.open('https://discord.gg/wNW8xkEjrf', new=2)
+		if endpoint == 'Urlt':
+			webbrowser.open('https://www.youtube.com/vjschool', new=2)
+		if endpoint == 'Urla':
+			webbrowser.open('https://olegcho.mp/', new=2)
+		if endpoint == 'Urldonate':
+			webbrowser.open('https://boosty.to/vjschool/donate', new=2)
 class TopCUDAInterface:
 	def __init__(self, width, height, num_comps, dtype):
 		self.mem_shape = CUDAMemoryShape()
