@@ -1,4 +1,3 @@
 huggingface_hub
 polygraphy
 onnx
-cupy-cuda11x
