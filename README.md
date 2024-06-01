@@ -14,7 +14,7 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 
 #### Install:
 1. Install [Python 3.11](https://www.python.org/downloads/release/python-3118/)
-2. Install [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads)
+2. Install [CUDA Toolkit]((https://developer.nvidia.com/cuda-11-8-0-download-archive)) 11.8
 3. Download TDDepthAnything repository
 4. Run ```accelerate.bat```
 
