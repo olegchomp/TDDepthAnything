@@ -24,12 +24,29 @@ os.makedirs("onnx_models", exist_ok=True)
 os.makedirs("engines", exist_ok=True)
 
 while True:
-    model_size = input("Enter 's' for small, 'b' for base, or 'l' for large: ").lower()
+    model_version = int(input("Enter 1 for DepthAnything v1 or 2 for DepthAnything v2: ").lower())
 
-    if model_size in ['s', 'b', 'l']:
+    if model_version in [1,2]:
         break
     else:
-        print("Invalid input. Please enter 's', 'b', or 'l'.")
+        print("Invalid input. Please enter '1' or '2'")
+
+while True:
+    if model_version == 1:
+        model_size = input("Enter 's' for small, 'b' for base, or 'l' for large: ").lower()
+
+        if model_size in ['s', 'b', 'l']:
+            break
+        else:
+            print("Invalid input. Please enter 's', 'b', or 'l'.")
+    else:
+        if model_version == 2:
+            model_size = input("Enter 's' for small, 'b' for base, 'l' for large, or 'g' for giant: ").lower()
+
+            if model_size in ['s', 'b', 'l', 'g']:
+                break
+            else:
+                print("Invalid input. Please enter 's', 'b', 'l', or 'g'.")
 
 while True:
     try:
@@ -41,7 +58,11 @@ while True:
 
 
 encoder = f'vit{model_size}'
-load_from = f'./checkpoints/depth_anything_vit{model_size}14.pth'
+if model_version == 1:
+    load_from = f'./checkpoints/depth_anything_vit{model_size}14.pth'
+else:
+    load_from = f'./checkpoints/depth_anything_v2_vit{model_size}.pth'
+
 width = adjust_image_size(width)
 height = adjust_image_size(height)
 image_shape = (3, height, width)
@@ -53,13 +74,29 @@ engine_path = f"engines/{outputs}_{width}x{height}.engine"
 
 # build onnx
 # Initializing model
-assert encoder in ['vits', 'vitb', 'vitl']
+#assert encoder in ['vits', 'vitb', 'vitl']
+
 if encoder == 'vits':
     depth_anything = DPT_DINOv2(encoder='vits', features=64, out_channels=[48, 96, 192, 384], localhub=False)
 elif encoder == 'vitb':
     depth_anything = DPT_DINOv2(encoder='vitb', features=128, out_channels=[96, 192, 384, 768], localhub=False)
-else:
+elif encoder == 'vitl':
     depth_anything = DPT_DINOv2(encoder='vitl', features=256, out_channels=[256, 512, 1024, 1024], localhub=False)
+else:
+    depth_anything = DPT_DINOv2(encoder='vitg', features=384, out_channels=[1536, 1536, 1536, 1536], localhub=False)
+
+if model_version == 2:
+    from depth_anything_v2.dpt import DepthAnythingV2
+
+    model_configs = {
+    'vits': {'encoder': 'vits', 'features': 64, 'out_channels': [48, 96, 192, 384]},
+    'vitb': {'encoder': 'vitb', 'features': 128, 'out_channels': [96, 192, 384, 768]},
+    'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]},
+    'vitg': {'encoder': 'vitg', 'features': 384, 'out_channels': [1536, 1536, 1536, 1536]}
+    }
+
+    depth_anything = DepthAnythingV2(**model_configs[encoder])
+
 
 total_params = sum(param.numel() for param in depth_anything.parameters())
 print('Total parameters: {:.2f}M'.format(total_params / 1e6))
