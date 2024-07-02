@@ -20,7 +20,7 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 5. Run ```accelerate.bat```
 
 > [!TIP]
-> You can use same .venv for TDDepthAnything & TouchDiffusion. Look into accelerate.bat at 10 & 29 line. Same with extensions, on settings page set path to TouchDiffusion folder.
+> You can use same .venv for TDDepthAnything & TouchDiffusion. Look into accelerate.bat at 10 & 29 line. Same with TouchDesigner extension, on settings page set path to TouchDiffusion folder.
 
 #### Accelerate models:
 1. Download [Depth-Anything model](https://huggingface.co/spaces/LiheYoung/Depth-Anything/tree/main/checkpoints) or [Depth-Anything v2 model](https://github.com/DepthAnything/Depth-Anything-V2?tab=readme-ov-file#pre-trained-models)
