@@ -20,12 +20,13 @@ Tested with TouchDesigner 2023.11340 & Python 3.11
 5. Run ```accelerate.bat```
 
 #### Accelerate models:
-1. Download [Depth-Anything model](https://huggingface.co/spaces/LiheYoung/Depth-Anything/tree/main/checkpoints)
+1. Download [Depth-Anything model](https://huggingface.co/spaces/LiheYoung/Depth-Anything/tree/main/checkpoints) or [Depth-Anything v2 model](https://github.com/DepthAnything/Depth-Anything-V2?tab=readme-ov-file#pre-trained-models)
 2. Copy model to ```checkpoints``` folder
 3. Run ```accelerate.bat```
-4. Select model size (s - small, b - base, l - large)
-5. Select width & height (default is 518x518)
-6. Wait for acceleration to finish
+4. Select model version (1 - Depth-Anything, 2 - Depth-Anything v2)
+5. Select model size (s - small, b - base, l - large, g - giant)
+6. Select width & height (default is 518x518)
+7. Wait for acceleration to finish
 #### TouchDesigner inference:
 1. Add TDDepthAnything.tox to project
 2. On ```Settings``` page change path to ```TDDepthAnything``` folder and click Re-init
