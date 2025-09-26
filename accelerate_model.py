@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.nn as nn
 import torch.onnx
 import tensorrt as trt
 from polygraphy.backend.trt import (
@@ -9,12 +10,20 @@ from polygraphy.backend.trt import (
     network_from_onnx_path,
     save_engine,
 )
-torch.hub.set_dir('torchhub')
-from depth_anything.dpt import DPT_DINOv2
+from transformers import DPTForDepthEstimation
+
+# Wrapper class to handle model output for ONNX export
+class DPTDepthModelWrapper(nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, pixel_values):
+        outputs = self.model(pixel_values)
+        return outputs.predicted_depth
 
 def adjust_image_size(image_size):
     patch_size = 14
-    # Calculate the nearest multiple of patch_size that is greater than or equal to image_size
     adjusted_size = (image_size // patch_size) * patch_size
     if image_size % patch_size != 0:
         adjusted_size += patch_size
@@ -23,104 +32,85 @@ def adjust_image_size(image_size):
 os.makedirs("onnx_models", exist_ok=True)
 os.makedirs("engines", exist_ok=True)
 
-while True:
-    model_version = int(input("Enter 1 for DepthAnything v1 or 2 for DepthAnything v2: ").lower())
+# Model selection menu
+print("Select Model to accelerate:")
+print("Depth Anything v1:")
+print("  1. Small (vits) - LiheYoung/depth-anything-vits-hf")
+print("  2. Base (vitb) - LiheYoung/depth-anything-vitb-hf")
+print("  3. Large (vitl) - LiheYoung/depth-anything-vitl-hf")
+print("Depth Anything v2:")
+print("  4. Small (vits) - depth-anything/Depth-Anything-V2-Small-hf")
+print("  5. Base (vitb) - depth-anything/Depth-Anything-V2-Base-hf")
+print("  6. Large (vitl) - depth-anything/Depth-Anything-V2-Large-hf")
+print("  7. Giant (vitg) - depth-anything/Depth-Anything-V2-Giant-hf")
 
-    if model_version in [1,2]:
-        break
-    else:
-        print("Invalid input. Please enter '1' or '2'")
-
-while True:
-    if model_version == 1:
-        model_size = input("Enter 's' for small, 'b' for base, or 'l' for large: ").lower()
-
-        if model_size in ['s', 'b', 'l']:
-            break
-        else:
-            print("Invalid input. Please enter 's', 'b', or 'l'.")
-    else:
-        if model_version == 2:
-            model_size = input("Enter 's' for small, 'b' for base, 'l' for large, or 'g' for giant: ").lower()
-
-            if model_size in ['s', 'b', 'l', 'g']:
-                break
-            else:
-                print("Invalid input. Please enter 's', 'b', 'l', or 'g'.")
+model_map = {
+    1: ("LiheYoung/depth-anything-vits-hf", "depth_anything_v1_vits"),
+    2: ("LiheYoung/depth-anything-vitb-hf", "depth_anything_v1_vitb"),
+    3: ("LiheYoung/depth-anything-vitl-hf", "depth_anything_v1_vitl"),
+    4: ("depth-anything/Depth-Anything-V2-Small-hf", "depth_anything_v2_small"),
+    5: ("depth-anything/Depth-Anything-V2-Base-hf", "depth_anything_v2_base"),
+    6: ("depth-anything/Depth-Anything-V2-Large-hf", "depth_anything_v2_large"),
+    7: ("depth-anything/Depth-Anything-V2-Giant-hf", "depth_anything_v2_giant"),
+}
 
 while True:
     try:
-        width = int(input("Enter the width of the input: "))
-        height = int(input("Enter the height of the input: "))
+        choice = int(input("Enter choice (1-7): "))
+        if choice in model_map:
+            model_id, model_short_name = model_map[choice]
+            break
+        else:
+            print("Invalid choice. Please enter a number between 1 and 7.")
+    except ValueError:
+        print("Invalid input. Please enter a number.")
+
+while True:
+    try:
+        width_str = input("Enter the width of the input (default 518): ")
+        width = int(width_str) if width_str else 518
+        height_str = input("Enter the height of the input (default 518): ")
+        height = int(height_str) if height_str else 518
         break
     except ValueError:
         print("Invalid input. Please enter a valid integer for width and height.")
 
-
-encoder = f'vit{model_size}'
-if model_version == 1:
-    load_from = f'./checkpoints/depth_anything_vit{model_size}14.pth'
-else:
-    load_from = f'./checkpoints/depth_anything_v2_vit{model_size}.pth'
-
+# Adjust size to be divisible by patch size (14)
 width = adjust_image_size(width)
 height = adjust_image_size(height)
 image_shape = (3, height, width)
-print(f'Image shape is {width}x{height}')
+print(f'Using adjusted image shape: {width}x{height}')
 
-outputs = f"{load_from.split('/')[-1].split('.pth')[0]}"
-onnx_path = f"onnx_models/{outputs}_{width}x{height}.onnx"
-engine_path = f"engines/{outputs}_{width}x{height}.engine"
+# Define output paths
+onnx_path = f"onnx_models/{model_short_name}_{width}x{height}.onnx"
+engine_path = f"engines/{model_short_name}_{width}x{height}.engine"
 
-# build onnx
-# Initializing model
-#assert encoder in ['vits', 'vitb', 'vitl']
+# Load model from Hugging Face
+print(f"Loading model: {model_id}")
+base_model = DPTForDepthEstimation.from_pretrained(model_id)
+model_to_export = DPTDepthModelWrapper(base_model)
+model_to_export.eval()
 
-if encoder == 'vits':
-    depth_anything = DPT_DINOv2(encoder='vits', features=64, out_channels=[48, 96, 192, 384], localhub=False)
-elif encoder == 'vitb':
-    depth_anything = DPT_DINOv2(encoder='vitb', features=128, out_channels=[96, 192, 384, 768], localhub=False)
-elif encoder == 'vitl':
-    depth_anything = DPT_DINOv2(encoder='vitl', features=256, out_channels=[256, 512, 1024, 1024], localhub=False)
-else:
-    depth_anything = DPT_DINOv2(encoder='vitg', features=384, out_channels=[1536, 1536, 1536, 1536], localhub=False)
+# Create dummy input
+dummy_input = torch.ones(1, *image_shape)
 
-if model_version == 2:
-    from depth_anything_v2.dpt import DepthAnythingV2
+# Export to ONNX
+print(f"Exporting model to {onnx_path}...")
+torch.onnx.export(
+    model_to_export,
+    dummy_input,
+    onnx_path,
+    opset_version=14,
+    input_names=["input"],
+    output_names=["output"],
+    verbose=False
+)
+print(f"Model exported successfully to {onnx_path}")
 
-    model_configs = {
-    'vits': {'encoder': 'vits', 'features': 64, 'out_channels': [48, 96, 192, 384]},
-    'vitb': {'encoder': 'vitb', 'features': 128, 'out_channels': [96, 192, 384, 768]},
-    'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]},
-    'vitg': {'encoder': 'vitg', 'features': 384, 'out_channels': [1536, 1536, 1536, 1536]}
-    }
-
-    depth_anything = DepthAnythingV2(**model_configs[encoder])
-
-
-total_params = sum(param.numel() for param in depth_anything.parameters())
-print('Total parameters: {:.2f}M'.format(total_params / 1e6))
-
-# Loading model weight
-depth_anything.load_state_dict(torch.load(load_from, map_location='cpu'), strict=True)
-
-depth_anything.eval()
-
-# Define dummy input data
-dummy_input = torch.ones(image_shape).unsqueeze(0)
-
-# Provide an example input to the model, this is necessary for exporting to ONNX
-example_output = depth_anything(dummy_input)
-
-# Export the PyTorch model to ONNX format
-torch.onnx.export(depth_anything, dummy_input, onnx_path, opset_version=11, input_names=["input"], output_names=["output"], verbose=True)
-
-print(f"Model exported to {onnx_path}")
-
-# build engine 
+# Build TensorRT engine
 print(f"Building TensorRT engine for {onnx_path}: {engine_path}")
-
 p = Profile()
+p.add("input", min=(1, *image_shape), opt=(1, *image_shape), max=(1, *image_shape))
 config_kwargs = {}
 
 engine = engine_from_network(
