@@ -40,3 +40,15 @@ Based on the following projects:
 * [Depth-Anything](https://github.com/LiheYoung/Depth-Anything) - Unleashing the Power of Large-Scale Unlabeled Data.
 * [Depth-Anything TensorRT C++](https://github.com/spacewalk01/depth-anything-tensorrt) - Leveraging the TensorRT API for efficient real-time inference.
 * [TopArray](https://github.com/IntentDev/TopArray) - Interaction between Python/PyTorch tensor operations and TouchDesigner TOPs.
+
+## License
+
+The original TouchDesigner integration code in TDDepthAnything is released under the MIT License. See [LICENSE](LICENSE) for details.
+
+Third-party code, dependencies, and model weights retain their respective licenses.
+
+Depth Anything V2 model weights have separate licensing terms:
+- **Small:** Apache-2.0
+- **Base / Large / Giant:** CC-BY-NC-4.0 (non-commercial use)
+
+Please refer to the original Depth Anything repositories for further licensing details.
